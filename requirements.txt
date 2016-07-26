@@ -39,3 +39,5 @@ semver==2.2.1
 xlsxwriter==0.8.4
 pystache==0.5.4
 parsedatetime==2.1
+google-api-python-client==1.5.1
+oauth2client==2.2.0

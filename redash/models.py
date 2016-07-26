@@ -170,6 +170,7 @@ class ApiUser(UserMixin, PermissionsCheckMixin):
 
 class Organization(ModelTimestampsMixin, BaseModel):
     SETTING_GOOGLE_APPS_DOMAINS = 'google_apps_domains'
+    SETTING_GOOGLE_APPS_DOMAIN_GROUPS_WHITELIST = 'google_apps_domain_groups_whitelist'
     SETTING_IS_PUBLIC = "is_public"
 
     id = peewee.PrimaryKeyField()
@@ -199,6 +200,10 @@ class Organization(ModelTimestampsMixin, BaseModel):
     @property
     def google_apps_domains(self):
         return self.settings.get(self.SETTING_GOOGLE_APPS_DOMAINS, [])
+
+    def google_apps_domain_groups_whitelist(self, google_apps_domain):
+        domain_groups_dictionary = self.settings.get(self.SETTING_GOOGLE_APPS_DOMAIN_GROUPS_WHITELIST, {})
+        return domain_groups_dictionary[google_apps_domain] or []
 
     @property
     def is_public(self):

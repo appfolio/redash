@@ -8,6 +8,7 @@ bower install
 cd /opt/redash/current
 
 #install requirements
+sudo pip install --user --upgrade google-api-python-client
 sudo pip install -r /opt/redash/current/requirements_dev.txt
 sudo pip install -r /opt/redash/current/requirements.txt
 sudo pip install pymongo==3.2.1
