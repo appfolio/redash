@@ -403,13 +403,16 @@
       return this.deferred.promise;
     }
 
-    QueryResult.get = function (data_source_id, query, maxAge, queryId) {
+    QueryResult.get = function (data_source_id, query, maxAge, queryId, S3, redshift, name) {
       var queryResult = new QueryResult();
 
       var params = {'data_source_id': data_source_id, 'query': query, 'max_age': maxAge};
       if (queryId !== undefined) {
         params['query_id'] = queryId;
       };
+      params['S3'] = S3;
+      params['redshift'] = redshift;
+      params['name'] = name;
 
       QueryResultResource.post(params, function (response) {
         queryResult.update(response);
@@ -521,7 +524,7 @@
           this.queryResult = QueryResult.getById(this.latest_query_data_id);
         }
       } else if (this.data_source_id) {
-        this.queryResult = QueryResult.get(this.data_source_id, queryText, maxAge, this.id);
+        this.queryResult = QueryResult.get(this.data_source_id, queryText, maxAge, this.id, this.S3, this.redshift, this.name);
       } else {
         return new QueryResultError("Please select data source to run this query.");
       }

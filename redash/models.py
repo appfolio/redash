@@ -592,6 +592,9 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
     is_archived = peewee.BooleanField(default=False, index=True)
     schedule = peewee.CharField(max_length=10, null=True)
     options = JSONField(default={})
+    redshift_checkbox = peewee.BooleanField(default=False, index=True)
+    S3_checkbox = peewee.BooleanField(default=False, index=True)
+
 
     class Meta:
         db_table = 'queries'
@@ -610,7 +613,9 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
             'updated_at': self.updated_at,
             'created_at': self.created_at,
             'data_source_id': self.data_source_id,
-            'options': self.options
+            'options': self.options,
+            'redshift_checkbox': self.redshift_checkbox,
+            'S3_checkbox': self.S3_checkbox
         }
 
         if with_user:

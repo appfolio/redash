@@ -9,6 +9,7 @@ from redash import redis_connection, models, statsd_client, settings, utils
 from redash.utils import gen_query_hash
 from redash.worker import celery
 from redash.query_runner import InterruptException
+# from redash.tasks.firehose_to_s3 import create_delivery_stream, write_data_to_s3, write_batch_data_to_s3
 from .base import BaseTask
 from .alerts import check_alerts_for_query
 
@@ -200,12 +201,14 @@ class QueryTask(object):
         return self._async_result.revoke(terminate=True, signal='SIGINT')
 
 
+# def enqueue_query(query, data_source, S3, redshift, name, scheduled=False, metadata={}):
 def enqueue_query(query, data_source, scheduled=False, metadata={}):
     query_hash = gen_query_hash(query)
     logging.info("Inserting job for %s with metadata=%s", query_hash, metadata)
     try_count = 0
     job = None
 
+    print "###################################"
     while try_count < 5:
         try_count += 1
 
@@ -231,6 +234,7 @@ def enqueue_query(query, data_source, scheduled=False, metadata={}):
                 else:
                     queue_name = data_source.queue_name
 
+                # result = execute_query.apply_async(args=(query, data_source.id, S3, redshift, name, metadata), queue=queue_name)
                 result = execute_query.apply_async(args=(query, data_source.id, metadata), queue=queue_name)
                 job = QueryTask(async_result=result)
                 tracker = QueryTaskTracker.create(result.id, 'created', query_hash, data_source.id, scheduled, metadata)
@@ -257,14 +261,18 @@ def refresh_queries():
     outdated_queries_count = 0
     query_ids = []
 
+    print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
     with statsd_client.timer('manager.outdated_queries_lookup'):
         for query in models.Query.outdated_queries():
             if query.data_source.paused:
                 logging.info("Skipping refresh of %s because datasource - %s is paused (%s).", query.id, query.data_source.name, query.data_source.pause_reason)
             else:
+                # enqueue_query(query.query, query.data_source, query.S3, query.redshift, query.name,
+                #               scheduled=True,
+                #               metadata={'Query ID': query.id, 'Username': 'Scheduled'})
                 enqueue_query(query.query, query.data_source,
-                              scheduled=True,
-                              metadata={'Query ID': query.id, 'Username': 'Scheduled'})
+                                            scheduled=True,
+                                            metadata={'Query ID': query.id, 'Username': 'Scheduled'})
 
             query_ids.append(query.id)
             outdated_queries_count += 1
@@ -364,10 +372,14 @@ class QueryExecutionError(Exception):
 # We could have created this as a celery.Task derived class, and act as the task itself. But this might result in weird
 # issues as the task class created once per process, so decided to have a plain object instead.
 class QueryExecutor(object):
+    # def __init__(self, task, query, data_source_id, S3, redshift, name, metadata):
     def __init__(self, task, query, data_source_id, metadata):
         self.task = task
         self.query = query
         self.data_source_id = data_source_id
+        # self.S3 = S3
+        # self.redshift = redshift
+        # self.name = name
         self.metadata = metadata
         self.data_source = self._load_data_source()
         self.query_hash = gen_query_hash(self.query)
@@ -388,6 +400,13 @@ class QueryExecutor(object):
         query_runner = self.data_source.query_runner
         annotated_query = self._annotate_query(query_runner)
         data, error = query_runner.run_query(annotated_query)
+        # if self.redshift:
+        #     create_delivery_stream("data_to_both_s3_and_redshift", "redash_to_both_s3_and_redshift")
+        #     write_batch_data_to_s3("data_to_both_s3_and_redshift", data, self.name)
+        #
+        # if self.S3:
+        #     create_delivery_stream("data_to_s3", "redash_to_s3")
+        #     write_batch_data_to_s3("data_to_s3", data, self.name)
         run_time = time.time() - self.tracker.started_at
         self.tracker.update(error=error, run_time=run_time, state='saving_results')
 
@@ -436,5 +455,7 @@ class QueryExecutor(object):
 
 
 @celery.task(name="redash.tasks.execute_query", bind=True, base=BaseTask, track_started=True)
+# def execute_query(self, query, data_source_id, S3, redshift, name, metadata):
+#     return QueryExecutor(self, query, data_source_id, S3, redshift, name, metadata).run()
 def execute_query(self, query, data_source_id, metadata):
     return QueryExecutor(self, query, data_source_id, metadata).run()
