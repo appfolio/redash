@@ -9,7 +9,8 @@ from redash import redis_connection, models, statsd_client, settings, utils
 from redash.utils import gen_query_hash
 from redash.worker import celery
 from redash.query_runner import InterruptException
-# from redash.tasks.firehose_to_s3 import create_delivery_stream, write_data_to_s3, write_batch_data_to_s3
+from redash.tasks.firehose_to_s3 import create_delivery_stream, write_data_to_s3, write_batch_data_to_s3
+# from redash.handlers.base import BaseResource, get_object_or_404
 from .base import BaseTask
 from .alerts import check_alerts_for_query
 
@@ -208,7 +209,6 @@ def enqueue_query(query, data_source, scheduled=False, metadata={}):
     try_count = 0
     job = None
 
-    print "###################################"
     while try_count < 5:
         try_count += 1
 
@@ -261,7 +261,6 @@ def refresh_queries():
     outdated_queries_count = 0
     query_ids = []
 
-    print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
     with statsd_client.timer('manager.outdated_queries_lookup'):
         for query in models.Query.outdated_queries():
             if query.data_source.paused:
@@ -272,7 +271,7 @@ def refresh_queries():
                 #               metadata={'Query ID': query.id, 'Username': 'Scheduled'})
                 enqueue_query(query.query, query.data_source,
                                             scheduled=True,
-                                            metadata={'Query ID': query.id, 'Username': 'Scheduled'})
+                                            metadata={'Query ID': query.id, 'Username': 'Scheduled', "S3": query.S3_checkbox, "Redshift": query.redshift_checkbox, "name": query.name})
 
             query_ids.append(query.id)
             outdated_queries_count += 1
@@ -377,9 +376,6 @@ class QueryExecutor(object):
         self.task = task
         self.query = query
         self.data_source_id = data_source_id
-        # self.S3 = S3
-        # self.redshift = redshift
-        # self.name = name
         self.metadata = metadata
         self.data_source = self._load_data_source()
         self.query_hash = gen_query_hash(self.query)
@@ -400,13 +396,15 @@ class QueryExecutor(object):
         query_runner = self.data_source.query_runner
         annotated_query = self._annotate_query(query_runner)
         data, error = query_runner.run_query(annotated_query)
-        # if self.redshift:
-        #     create_delivery_stream("data_to_both_s3_and_redshift", "redash_to_both_s3_and_redshift")
-        #     write_batch_data_to_s3("data_to_both_s3_and_redshift", data, self.name)
-        #
-        # if self.S3:
-        #     create_delivery_stream("data_to_s3", "redash_to_s3")
-        #     write_batch_data_to_s3("data_to_s3", data, self.name)
+        # query = get_object_or_404(models.Query.get_by_id_and_org, self.metadata.query_id, self.current_org)
+
+        if self.metadata['Redshift']:
+            create_delivery_stream("data_to_both_s3_and_redshift", "redash_to_both_s3_and_redshift")
+            write_batch_data_to_s3("data_to_both_s3_and_redshift", data, self.metadata['name'])
+
+        if self.metadata['S3']:
+            create_delivery_stream("data_to_s3", "redash_to_s3")
+            write_batch_data_to_s3("data_to_s3", data, self.metadata['name'])
         run_time = time.time() - self.tracker.started_at
         self.tracker.update(error=error, run_time=run_time, state='saving_results')
 

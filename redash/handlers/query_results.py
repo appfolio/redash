@@ -19,9 +19,8 @@ from redash.tasks.queries import enqueue_query
 def error_response(message):
     return {'job': {'status': 4, 'error': message}}, 400
 
-
-# def run_query(data_source, parameter_values, query_text, query_id, S3, redshift, name, max_age=0):
-def run_query(data_source, parameter_values, query_text, query_id, max_age=0):
+def run_query(data_source, parameter_values, query_text, query_id, max_age=0, test={}):
+# def run_query(data_source, parameter_values, query_text, query_id, max_age=0):
     query_parameters = set(collect_query_parameters(query_text))
     missing_params = set(query_parameters) - set(parameter_values.keys())
     if missing_params:
@@ -47,7 +46,7 @@ def run_query(data_source, parameter_values, query_text, query_id, max_age=0):
         return {'query_result': query_result.to_dict()}
     else:
         # job = enqueue_query(query_text, data_source, S3, redshift, name, metadata={"Username": current_user.name, "Query ID": query_id})
-        job = enqueue_query(query_text, data_source, metadata={"Username": current_user.name, "Query ID": query_id})
+        job = enqueue_query(query_text, data_source, metadata={"Username": current_user.name, "Query ID": query_id, "S3": test['S3'], "Redshift": test['Redshift'], "name": test['name']})
         return {'job': job.to_dict()}
 
 
@@ -60,9 +59,9 @@ class QueryResultListResource(BaseResource):
         query = params['query']
         max_age = int(params.get('max_age', -1))
         query_id = params.get('query_id', 'adhoc')
-        # S3 = params['S3']
-        # redshift = params['redshift']
-        # name = params['name']
+        S3 = params['S3']
+        redshift = params['redshift']
+        name = params['name']
 
         data_source = models.DataSource.get_by_id_and_org(params.get('data_source_id'), self.current_org)
 
@@ -78,7 +77,8 @@ class QueryResultListResource(BaseResource):
         })
 
         # return run_query(data_source, parameter_values, query, query_id, S3, redshift, name, max_age)
-        return run_query(data_source, parameter_values, query, query_id, max_age)
+        # return run_query(data_source, parameter_values, query, query_id, max_age)
+        return run_query(data_source, parameter_values, query, query_id, max_age, test = {"S3": S3, "Redshift": redshift, "name": name})
 
 
 ONE_YEAR = 60 * 60 * 24 * 365.25
