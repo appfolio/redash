@@ -10,6 +10,7 @@ from redash.utils import gen_query_hash
 from redash.worker import celery
 from redash.query_runner import InterruptException
 from redash.tasks.firehose_to_s3 import create_delivery_stream, write_data_to_s3, write_batch_data_to_s3
+from redash.tasks.write_to_avro import write_to_avro
 # from redash.handlers.base import BaseResource, get_object_or_404
 from .base import BaseTask
 from .alerts import check_alerts_for_query
@@ -202,7 +203,6 @@ class QueryTask(object):
         return self._async_result.revoke(terminate=True, signal='SIGINT')
 
 
-# def enqueue_query(query, data_source, S3, redshift, name, scheduled=False, metadata={}):
 def enqueue_query(query, data_source, scheduled=False, metadata={}):
     query_hash = gen_query_hash(query)
     logging.info("Inserting job for %s with metadata=%s", query_hash, metadata)
@@ -234,7 +234,6 @@ def enqueue_query(query, data_source, scheduled=False, metadata={}):
                 else:
                     queue_name = data_source.queue_name
 
-                # result = execute_query.apply_async(args=(query, data_source.id, S3, redshift, name, metadata), queue=queue_name)
                 result = execute_query.apply_async(args=(query, data_source.id, metadata), queue=queue_name)
                 job = QueryTask(async_result=result)
                 tracker = QueryTaskTracker.create(result.id, 'created', query_hash, data_source.id, scheduled, metadata)
@@ -266,9 +265,6 @@ def refresh_queries():
             if query.data_source.paused:
                 logging.info("Skipping refresh of %s because datasource - %s is paused (%s).", query.id, query.data_source.name, query.data_source.pause_reason)
             else:
-                # enqueue_query(query.query, query.data_source, query.S3, query.redshift, query.name,
-                #               scheduled=True,
-                #               metadata={'Query ID': query.id, 'Username': 'Scheduled'})
                 enqueue_query(query.query, query.data_source,
                                             scheduled=True,
                                             metadata={'Query ID': query.id, 'Username': 'Scheduled', "S3": query.S3_checkbox, "Redshift": query.redshift_checkbox, "name": query.name})
@@ -371,7 +367,6 @@ class QueryExecutionError(Exception):
 # We could have created this as a celery.Task derived class, and act as the task itself. But this might result in weird
 # issues as the task class created once per process, so decided to have a plain object instead.
 class QueryExecutor(object):
-    # def __init__(self, task, query, data_source_id, S3, redshift, name, metadata):
     def __init__(self, task, query, data_source_id, metadata):
         self.task = task
         self.query = query
@@ -401,10 +396,13 @@ class QueryExecutor(object):
         if self.metadata['Redshift']:
             create_delivery_stream("data_to_both_s3_and_redshift", "redash_to_both_s3_and_redshift")
             write_batch_data_to_s3("data_to_both_s3_and_redshift", data, self.metadata['name'])
+            # write_to_avro('avro_s3_and_redshift', self.metadata['name'], data)
 
         if self.metadata['S3']:
             create_delivery_stream("data_to_s3", "redash_to_s3")
             write_batch_data_to_s3("data_to_s3", data, self.metadata['name'])
+            # write_to_avro('avro_s3', self.metadata['name'], data)
+
         run_time = time.time() - self.tracker.started_at
         self.tracker.update(error=error, run_time=run_time, state='saving_results')
 
@@ -453,7 +451,5 @@ class QueryExecutor(object):
 
 
 @celery.task(name="redash.tasks.execute_query", bind=True, base=BaseTask, track_started=True)
-# def execute_query(self, query, data_source_id, S3, redshift, name, metadata):
-#     return QueryExecutor(self, query, data_source_id, S3, redshift, name, metadata).run()
 def execute_query(self, query, data_source_id, metadata):
     return QueryExecutor(self, query, data_source_id, metadata).run()
