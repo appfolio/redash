@@ -99,7 +99,7 @@
               var cur = editor.getCursor(), token = editor.getTokenAt(cur).string;
 
               hints.list = _.union(hints.list, _.filter(additionalHints, function (h) {
-                return h.search(token) === 0;
+                return h.includes(token);
               }));
 
               return hints;
