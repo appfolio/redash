@@ -9,11 +9,9 @@ from redash import redis_connection, models, statsd_client, settings, utils
 from redash.utils import gen_query_hash
 from redash.worker import celery
 from redash.query_runner import InterruptException
-from redash.tasks.firehose_to_s3 import create_delivery_stream, write_data_to_s3, write_batch_data_to_s3
-from redash.tasks.write_to_avro import write_to_avro
-# from redash.handlers.base import BaseResource, get_object_or_404
 from .base import BaseTask
 from .alerts import check_alerts_for_query
+from .event_streams import event_stream_callback_for
 
 logger = get_task_logger(__name__)
 
@@ -231,10 +229,12 @@ def enqueue_query(query, data_source, scheduled=False, metadata={}):
 
                 if scheduled:
                     queue_name = data_source.scheduled_queue_name
+                    callback = event_stream_callback_for(metadata['Query ID'])
                 else:
                     queue_name = data_source.queue_name
+                    callback = None
 
-                result = execute_query.apply_async(args=(query, data_source.id, metadata), queue=queue_name)
+                result = execute_query.apply_async(args=(query, data_source.id, metadata), queue=queue_name, link=callback)
                 job = QueryTask(async_result=result)
                 tracker = QueryTaskTracker.create(result.id, 'created', query_hash, data_source.id, scheduled, metadata)
                 tracker.save(connection=pipe)
@@ -266,8 +266,8 @@ def refresh_queries():
                 logging.info("Skipping refresh of %s because datasource - %s is paused (%s).", query.id, query.data_source.name, query.data_source.pause_reason)
             else:
                 enqueue_query(query.query, query.data_source,
-                                            scheduled=True,
-                                            metadata={'Query ID': query.id, 'Username': 'Scheduled', "S3": query.S3_checkbox, "Redshift": query.redshift_checkbox, "name": query.name})
+                              scheduled=True,
+                              metadata={'Query ID': query.id, 'Username': 'Scheduled'})
 
             query_ids.append(query.id)
             outdated_queries_count += 1
@@ -391,17 +391,6 @@ class QueryExecutor(object):
         query_runner = self.data_source.query_runner
         annotated_query = self._annotate_query(query_runner)
         data, error = query_runner.run_query(annotated_query)
-        # query = get_object_or_404(models.Query.get_by_id_and_org, self.metadata.query_id, self.current_org)
-
-        if self.metadata['Redshift']:
-            create_delivery_stream("data_to_both_s3_and_redshift", "redash_to_both_s3_and_redshift")
-            write_batch_data_to_s3("data_to_both_s3_and_redshift", data, self.metadata['name'])
-            # write_to_avro('avro_s3_and_redshift', self.metadata['name'], data)
-
-        if self.metadata['S3']:
-            create_delivery_stream("data_to_s3", "redash_to_s3")
-            write_batch_data_to_s3("data_to_s3", data, self.metadata['name'])
-            # write_to_avro('avro_s3', self.metadata['name'], data)
 
         run_time = time.time() - self.tracker.started_at
         self.tracker.update(error=error, run_time=run_time, state='saving_results')
