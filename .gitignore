@@ -27,3 +27,5 @@ node_modules
 .tmp
 .sass-cache
 rd_ui/app/bower_components
+temp.avsc
+temp.avro

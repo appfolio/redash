@@ -18,9 +18,9 @@
 
     <div class="radio">
         <span class="text-muted">Save to s3</span>
-        <input type="checkbox" ng-model="query.options['S3_checkbox']" ng-change="saveQuery()">
+        <input type="checkbox" ng-disabled="refreshType == 'periodic' && query.schedule == null" ng-model="query.options['S3_checkbox']" ng-change="saveQuery()">
 
         <span class="text-muted">Save to s3 and redshift</span>
-        <input type="checkbox" ng-model="query.options['redshift_checkbox']" ng-change="saveQuery()">
+        <input type="checkbox" ng-disabled="refreshType == 'periodic' && query.schedule == null" ng-model="query.options['redshift_checkbox']" ng-change="saveQuery()">
     </div>
 </div>
