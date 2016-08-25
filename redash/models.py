@@ -578,6 +578,9 @@ def should_schedule_next(previous_iteration, now, schedule):
 
 
 class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
+    S3_CHECKBOX = 'S3_checkbox'
+    REDSHIFT_CHECKBOX = 'redshift_checkbox'
+
     id = peewee.PrimaryKeyField()
     org = peewee.ForeignKeyField(Organization, related_name="queries")
     data_source = peewee.ForeignKeyField(DataSource, null=True)
@@ -592,9 +595,6 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
     is_archived = peewee.BooleanField(default=False, index=True)
     schedule = peewee.CharField(max_length=10, null=True)
     options = JSONField(default={})
-    redshift_checkbox = peewee.BooleanField(default=False, index=True)
-    S3_checkbox = peewee.BooleanField(default=False, index=True)
-
 
     class Meta:
         db_table = 'queries'
@@ -614,8 +614,6 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
             'created_at': self.created_at,
             'data_source_id': self.data_source_id,
             'options': self.options,
-            'redshift_checkbox': self.redshift_checkbox,
-            'S3_checkbox': self.S3_checkbox
         }
 
         if with_user:
@@ -757,6 +755,14 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
             return {}
 
         return self.data_source.groups
+
+    @property
+    def redshift_checkbox(self):
+        return self.options.get(self.REDSHIFT_CHECKBOX, [])
+
+    @property
+    def s3_checkbox(self):
+        return self.options.get(self.S3_CHECKBOX, [])
 
     def __unicode__(self):
         return unicode(self.id)
