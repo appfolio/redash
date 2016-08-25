@@ -122,8 +122,6 @@ class QueryRefreshResource(BaseResource):
 
         parameter_values = collect_parameters_from_request(request.args)
 
-        return run_query(query.data_source, parameter_values, query.query, query.id, test={ "S3": query.S3_checkbox, "Redshift": query.redshift_checkbox, "name": query.name})
-
-        # return run_query(query.data_source, parameter_values, query.query, query.id)
+        return run_query(query.data_source, parameter_values, query.query, query.id)
 
 
