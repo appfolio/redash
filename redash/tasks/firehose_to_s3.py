@@ -28,25 +28,6 @@ def create_delivery_stream(delivery_stream_name, prefix):
 
     return firehose.describe_delivery_stream(DeliveryStreamName=delivery_stream_name) ['DeliveryStreamDescription']
 
-
-def write_data_to_s3(delivery_stream_name, data):
-    desc = firehose.describe_delivery_stream(
-        DeliveryStreamName=delivery_stream_name
-    )
-    if delivery_stream_name in [name for name in firehose.list_delivery_streams()['DeliveryStreamNames']]:
-        if desc['DeliveryStreamDescription']['DeliveryStreamStatus'] == 'ACTIVE':
-            result = firehose.put_record(
-                DeliveryStreamName=delivery_stream_name,
-                Record={
-                    "Data": str(data)
-                }
-            )
-        else:
-            print 'Wait for AWS finishing creating your delivery_stream'
-    else:
-        print 'No %s firehose exists!' % delivery_stream_name
-
-
 def write_batch_data_to_s3(delivery_stream_name, data, event_stream):   
     desc = firehose.describe_delivery_stream(
         DeliveryStreamName=delivery_stream_name
