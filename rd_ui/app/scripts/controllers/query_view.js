@@ -129,9 +129,7 @@
         }
         data.id = $scope.query.id;
       } else {
-        data = _.pick($scope.query, ["schedule", "query", "id", "description", "name", "data_source_id", "options"]);
-        data.redshift_checkbox = $scope.checkbox.redshift;
-        data.S3_checkbox = $scope.checkbox.S3;
+        data = _.pick($scope.query, ["schedule", "query", "id", "description", "name", "data_source_id", "options", "redshift_checkbox", "S3_checkbox"]);
 
         if ($scope.query.isNew()) {
           data['latest_query_data_id'] = $scope.query.latest_query_data_id;
@@ -160,18 +158,6 @@
       $scope.saveQuery(undefined, {'name': $scope.query.name});
     };
 
-    $scope.checkbox = {
-      redshift : false,
-      S3 : false
-    };
-
-    if ($scope.query.redshift_checkbox) {
-      $scope.checkbox.redshift = $scope.query.redshift_checkbox;
-    }
-    if ($scope.query.S3_checkbox) {
-        $scope.checkbox.S3 = $scope.query.S3_checkbox;
-    }
-
     $scope.executeQuery = function() {
       if (!$scope.canExecuteQuery()) {
         return;
@@ -181,9 +167,6 @@
         return;
       }
 
-      $scope.query.S3 = $scope.checkbox.S3;
-      $scope.query.redshift = $scope.checkbox.redshift;
-      
       getQueryResult(0);
       $scope.lockButton(true);
       $scope.cancelling = false;
