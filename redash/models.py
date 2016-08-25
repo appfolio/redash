@@ -578,9 +578,6 @@ def should_schedule_next(previous_iteration, now, schedule):
 
 
 class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
-    S3_CHECKBOX = 'S3_checkbox'
-    REDSHIFT_CHECKBOX = 'redshift_checkbox'
-
     id = peewee.PrimaryKeyField()
     org = peewee.ForeignKeyField(Organization, related_name="queries")
     data_source = peewee.ForeignKeyField(DataSource, null=True)
@@ -755,14 +752,6 @@ class Query(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
             return {}
 
         return self.data_source.groups
-
-    @property
-    def redshift_checkbox(self):
-        return self.options.get(self.REDSHIFT_CHECKBOX, [])
-
-    @property
-    def s3_checkbox(self):
-        return self.options.get(self.S3_CHECKBOX, [])
 
     def __unicode__(self):
         return unicode(self.id)
