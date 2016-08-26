@@ -10,6 +10,7 @@ from redash.utils import gen_query_hash
 from redash.worker import celery
 from redash.query_runner import InterruptException
 from .alerts import check_alerts_for_query
+from .event_streams import event_stream_callback_for
 
 logger = get_task_logger(__name__)
 
@@ -228,14 +229,16 @@ def enqueue_query(query, data_source, user_id, scheduled_query=None, metadata={}
                 if scheduled_query:
                     queue_name = data_source.scheduled_queue_name
                     scheduled_query_id = scheduled_query.id
+                    callback = event_stream_callback_for(metadata['Query ID'])
                 else:
                     queue_name = data_source.queue_name
                     scheduled_query_id = None
+                    callback = None
 
                 result = execute_query.apply_async(args=(
                     query, data_source.id, metadata, user_id,
                     scheduled_query_id),
-                                                   queue=queue_name)
+                                                   queue=queue_name, link=callback)
                 job = QueryTask(async_result=result)
                 tracker = QueryTaskTracker.create(
                     result.id, 'created', query_hash, data_source.id,
@@ -265,7 +268,7 @@ def refresh_queries():
 
     with statsd_client.timer('manager.outdated_queries_lookup'):
         for query in models.Query.outdated_queries():
-            if settings.FEATURE_DISABLE_REFRESH_QUERIES: 
+            if settings.FEATURE_DISABLE_REFRESH_QUERIES:
                 logging.info("Disabled refresh queries.")
             elif query.data_source.paused:
                 logging.info("Skipping refresh of %s because datasource - %s is paused (%s).", query.id, query.data_source.name, query.data_source.pause_reason)
