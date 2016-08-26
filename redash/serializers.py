@@ -97,6 +97,7 @@ def serialize_query(query, with_stats=False, with_visualizations=False, with_use
         'updated_at': query.updated_at,
         'created_at': query.created_at,
         'data_source_id': query.data_source_id,
+        'privileged': query.privileged,
         'options': query.options,
         'version': query.version,
         'tags': query.tags or [],

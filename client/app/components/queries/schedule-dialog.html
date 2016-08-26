@@ -15,4 +15,10 @@
             <query-time-picker refresh-type="$ctrl.refreshType" query="$ctrl.query" save-query="$ctrl.saveQuery"></query-time-picker>
         </label>
     </div>
+
+    <span class="text-muted">Save to S3</span>
+    <input type="checkbox" ng-disabled="$ctrl.query.schedule == null || $ctrl.query.privileged" ng-model="$ctrl.query.options['save_scheduled_result_to_s3']" ng-change="$ctrl.saveQuery()">
+
+    <span class="text-muted">Save to S3 and Redshift</span>
+    <input type="checkbox" ng-disabled="$ctrl.query.schedule == null || $ctrl.query.privileged" ng-model="$ctrl.query.options['save_scheduled_result_to_s3_and_redshift']" ng-change="$ctrl.saveQuery()">
 </div>

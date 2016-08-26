@@ -11,8 +11,10 @@ from six import text_type
 from redash import models, redis_connection, settings, statsd_client
 from redash.query_runner import InterruptException
 from redash.tasks.alerts import check_alerts_for_query
+from redash.tasks.event_streams import event_stream_callback_for
 from redash.utils import gen_query_hash, json_dumps, json_loads, utcnow, mustache_render
 from redash.worker import celery
+
 
 logger = get_task_logger(__name__)
 
@@ -235,13 +237,16 @@ def enqueue_query(query, data_source, user_id, scheduled_query=None, metadata={}
                 if scheduled_query:
                     queue_name = data_source.scheduled_queue_name
                     scheduled_query_id = scheduled_query.id
+                    callback = event_stream_callback_for(metadata['Query ID'])
                 else:
                     queue_name = data_source.queue_name
                     scheduled_query_id = None
+                    callback = None
                     time_limit = settings.ADHOC_QUERY_TIME_LIMIT
 
                 result = execute_query.apply_async(args=(query, data_source.id, metadata, user_id, scheduled_query_id),
                                                    queue=queue_name,
+                                                   link=callback,
                                                    time_limit=time_limit)
                 job = QueryTask(async_result=result)
                 tracker = QueryTaskTracker.create(

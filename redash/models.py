@@ -597,7 +597,8 @@ class DataSource(BelongsToOrgMixin, db.Model):
             'type': self.type,
             'syntax': self.query_runner.syntax,
             'paused': self.paused,
-            'pause_reason': self.pause_reason
+            'pause_reason': self.pause_reason,
+            'privileged': self.privileged
         }
 
         if all:
@@ -615,8 +616,15 @@ class DataSource(BelongsToOrgMixin, db.Model):
 
         return d
 
+    @property
+    def privileged(self):
+        return db.session.query(DataSourceGroup).filter(DataSourceGroup.group == self.org.default_group, DataSourceGroup.data_source == self).first() == None
+
     def __str__(self):
         return text_type(self.name)
+
+    def __unicode__(self):
+        return self.name
 
     @classmethod
     def create_with_group(cls, *args, **kwargs):
@@ -811,6 +819,10 @@ class QueryResult(db.Model, BelongsToOrgMixin):
 
     def __str__(self):
         return u"%d | %s | %s" % (self.id, self.query_hash, self.retrieved_at)
+
+    @classmethod
+    def get_by_id(cls, _id):
+        return cls.query.filter(cls.id == _id).one()
 
     @property
     def groups(self):
@@ -1121,8 +1133,15 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
         "The SQLAlchemy expression for the property above."
         return func.lower(cls.name)
 
+    @property
+    def privileged(self):
+        return self.data_source.privileged
+
     def __str__(self):
         return text_type(self.id)
+
+    def __unicode__(self):
+        return unicode(self.id)
 
     def __repr__(self):
         return '<Query %s: "%s">' % (self.id, self.name or 'untitled')
