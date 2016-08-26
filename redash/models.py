@@ -569,7 +569,8 @@ class DataSource(BelongsToOrgMixin, db.Model):
             'type': self.type,
             'syntax': self.query_runner.syntax,
             'paused': self.paused,
-            'pause_reason': self.pause_reason
+            'pause_reason': self.pause_reason,
+            'privileged': self.privileged
         }
 
         if all:
@@ -586,6 +587,10 @@ class DataSource(BelongsToOrgMixin, db.Model):
                 DataSourceGroup.data_source == self).one()[0]
 
         return d
+
+    @property
+    def privileged(self):
+        return db.session.query(DataSourceGroup).filter(DataSourceGroup.group == self.org.default_group, DataSourceGroup.data_source == self).first() == None
 
     def __unicode__(self):
         return self.name
@@ -782,6 +787,10 @@ class QueryResult(db.Model, BelongsToOrgMixin):
     def __unicode__(self):
         return u"%d | %s | %s" % (self.id, self.query_hash, self.retrieved_at)
 
+    @classmethod
+    def get_by_id(cls, _id):
+        return cls.query.filter(cls.id == _id).one()
+
     @property
     def groups(self):
         return self.data_source.groups
@@ -898,6 +907,7 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
             'updated_at': self.updated_at,
             'created_at': self.created_at,
             'data_source_id': self.data_source_id,
+            'privileged': self.privileged,
             'options': self.options,
             'version': self.version
         }
@@ -1078,6 +1088,10 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
             return {}
 
         return self.data_source.groups
+
+    @property
+    def privileged(self):
+        return self.data_source.privileged
 
     def __unicode__(self):
         return unicode(self.id)

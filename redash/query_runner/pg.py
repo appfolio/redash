@@ -25,6 +25,7 @@ types_map = {
     1015: TYPE_STRING,
     1008: TYPE_STRING,
     1009: TYPE_STRING,
+    1043: TYPE_STRING,
     2951: TYPE_STRING
 }
 
