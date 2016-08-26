@@ -11,6 +11,7 @@ from redash.worker import celery
 from redash.query_runner import InterruptException
 from .base import BaseTask
 from .alerts import check_alerts_for_query
+from .event_streams import event_stream_callback_for
 
 logger = get_task_logger(__name__)
 
@@ -228,10 +229,12 @@ def enqueue_query(query, data_source, scheduled=False, metadata={}):
 
                 if scheduled:
                     queue_name = data_source.scheduled_queue_name
+                    callback = event_stream_callback_for(metadata['Query ID'])
                 else:
                     queue_name = data_source.queue_name
+                    callback = None
 
-                result = execute_query.apply_async(args=(query, data_source.id, metadata), queue=queue_name)
+                result = execute_query.apply_async(args=(query, data_source.id, metadata), queue=queue_name, link=callback)
                 job = QueryTask(async_result=result)
                 tracker = QueryTaskTracker.create(result.id, 'created', query_hash, data_source.id, scheduled, metadata)
                 tracker.save(connection=pipe)
