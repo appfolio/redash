@@ -39,7 +39,7 @@ def write_batch_data_to_s3(stream_name, data, event_name):
 
 def parse_data_to_batches(query_data, event_name):
     query_data = json.loads(query_data)
-    batch_header_event = format_event({ 'event_name': event_name, 'date': str(datetime.datetime.now().date()), 'columns': query_data['columns'] })
+    batch_header_event = format_event({ 'event_name': event_name, 'occurred_at': str(datetime.datetime.now()), 'columns': query_data['columns'] })
 
     batch_list = []
     for i, row in enumerate(query_data['rows']):
