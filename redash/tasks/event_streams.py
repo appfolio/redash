@@ -4,7 +4,7 @@ import json
 import datetime
 from celery.utils.log import get_task_logger
 from redash.worker import celery
-from redash import models
+from redash import models, settings
 from .base import BaseTask
 
 firehose = boto3.client('firehose')
@@ -25,9 +25,9 @@ def event_stream_callback_for(query_id):
     query = models.Query.get_by_id(query_id)
 
     if query.options.get('save_scheduled_result_to_s3_and_redshift', False):
-        return write_to_firehose.s('data_to_both_s3_and_redshift', query.name)
+        return write_to_firehose.s(settings.S3_AND_REDSHIFT_STREAM, query.name)
     elif query.options.get('save_scheduled_result_to_s3', False):
-        return write_to_firehose.s('data_to_s3', query.name)
+        return write_to_firehose.s(settings.S3_ONLY_STREAM, query.name)
     else:
         return None
 
