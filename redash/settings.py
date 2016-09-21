@@ -69,6 +69,10 @@ DATABASE_CONFIG = parse_db_url(os.environ.get("REDASH_DATABASE_URL", os.environ.
 CELERY_BROKER = os.environ.get("REDASH_CELERY_BROKER", REDIS_URL)
 CELERY_BACKEND = os.environ.get("REDASH_CELERY_BACKEND", CELERY_BROKER)
 
+# Event stream names for saving scheduled query results
+S3_AND_REDSHIFT_STREAM = os.environ.get("S3_AND_REDSHIFT_STREAM", "")
+S3_ONLY_STREAM = os.environ.get("S3_ONLY_STREAM", "")
+
 # The following enables periodic job (every 5 minutes) of removing unused query results.
 QUERY_RESULTS_CLEANUP_ENABLED = parse_boolean(os.environ.get("REDASH_QUERY_RESULTS_CLEANUP_ENABLED", "true"))
 QUERY_RESULTS_CLEANUP_COUNT = int(os.environ.get("REDASH_QUERY_RESULTS_CLEANUP_COUNT", "100"))
