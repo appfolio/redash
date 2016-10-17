@@ -15,7 +15,7 @@ def get_user_department(email):
         return None
 
     for employee in response.json()['employees']:
-        if employee['workEmail'] == email:
+        if employee['workEmail'].lower() == email.lower():
             return employee['department']
 
     logger.warning("User email not found in Bamboo employee directory: %s", email)
