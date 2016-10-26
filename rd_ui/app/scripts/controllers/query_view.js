@@ -88,6 +88,10 @@
       });
     }
 
+    $scope.filterPrivateTables =  function (table) {
+      return !table.name.startsWith('_');
+    }
+
     Events.record(currentUser, 'view', 'query', $scope.query.id);
     if ($scope.query.hasResult() || $scope.query.paramsRequired()) {
       getQueryResult();
