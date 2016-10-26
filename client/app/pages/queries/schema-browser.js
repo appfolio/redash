@@ -17,6 +17,8 @@ function SchemaBrowserCtrl($scope) {
 
     return size;
   };
+
+  this.filterPrivateTables = table => !table.name.split('.').slice(-1)[0].startsWith('_');
 }
 
 const SchemaBrowser = {
