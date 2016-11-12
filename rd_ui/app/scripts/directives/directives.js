@@ -3,7 +3,7 @@
 
   var directives = angular.module('redash.directives', []);
 
-  directives.directive('appHeader', ['$location', 'Dashboard', 'notifications', function ($location, Dashboard) {
+  directives.directive('appHeader', ['$location', 'Dashboard', 'Alert', 'notifications', function ($location, Dashboard, Alert) {
     return {
       restrict: 'E',
       replace: true,
@@ -33,6 +33,10 @@
         $scope.reloadDashboards();
 
         $scope.currentUser = currentUser;
+
+        $scope.alertsTriggered = Alert.query(function(alerts) {
+          return alerts.some(function(alert) { alert.state === 'triggered' });
+        })
       }
     }
   }]);
