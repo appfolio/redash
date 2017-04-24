@@ -74,6 +74,10 @@ CELERY_TASK_RESULT_EXPIRES = int(os.environ.get('REDASH_CELERY_TASK_RESULT_EXPIR
 # Event stream names for saving scheduled query results
 S3_AND_REDSHIFT_STREAM = os.environ.get("S3_AND_REDSHIFT_STREAM", "")
 S3_ONLY_STREAM = os.environ.get("S3_ONLY_STREAM", "")
+S3_AND_REDSHIFT_SCHEMA_STREAM = os.environ.get("S3_AND_REDSHIFT_SCHEMA_STREAM", "")
+S3_AND_REDSHIFT_DATA_STREAM = os.environ.get("S3_AND_REDSHIFT_DATA_STREAM", "")
+S3_ONLY_SCHEMA_STREAM = os.environ.get("S3_ONLY_SCHEMA_STREAM", "")
+S3_ONLY_DATA_STREAM = os.environ.get("S3_ONLY_DATA_STREAM", "")
 
 # The following enables periodic job (every 5 minutes) of removing unused query results.
 QUERY_RESULTS_CLEANUP_ENABLED = parse_boolean(os.environ.get("REDASH_QUERY_RESULTS_CLEANUP_ENABLED", "true"))
