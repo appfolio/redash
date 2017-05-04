@@ -231,6 +231,10 @@ class Redshift(PostgreSQL):
                    "type": "string",
                    "title": "SSL Mode",
                    "default": "prefer"
+                },
+                "allow_broadcast_joins": {
+                    "type": "boolean",
+                    "title": "Allow Broadcast Joins"
                 }
             },
             "order": ['host', 'port', 'user', 'password'],
@@ -278,6 +282,11 @@ class Redshift(PostgreSQL):
         self._get_definitions(schema, query)
 
         return schema.values()
+
+    def __init__(self, configuration):
+        configuration = configuration.to_dict().copy()
+        configuration.pop('allow_broadcast_joins', None)
+        super(Redshift, self).__init__(configuration)
 
 
 class CockroachDB(PostgreSQL):

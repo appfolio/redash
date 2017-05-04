@@ -12,9 +12,9 @@ from redash import models, redis_connection, settings, statsd_client
 from redash.query_runner import InterruptException
 from redash.tasks.alerts import check_alerts_for_query
 from redash.tasks.event_streams import event_stream_callback_for
+from redash.query_validation import validate_query
 from redash.utils import gen_query_hash, json_dumps, json_loads, utcnow, mustache_render
 from redash.worker import celery
-
 
 logger = get_task_logger(__name__)
 
@@ -456,6 +456,7 @@ class QueryExecutor(object):
         annotated_query = self._annotate_query(query_runner)
 
         try:
+            validate_query(self.data_source, self.query)
             data, error = query_runner.run_query(annotated_query, self.user)
         except Exception as e:
             error = text_type(e)
