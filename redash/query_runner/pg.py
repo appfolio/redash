@@ -181,11 +181,20 @@ class Redshift(PostgreSQL):
                 "dbname": {
                     "type": "string",
                     "title": "Database Name"
+                },
+                "allow_broadcast_joins": {
+                    "type": "boolean",
+                    "title": "Allow Broadcast Joins"
                 }
             },
             "required": ["dbname", "user", "password", "host", "port"],
             "secret": ["password"]
         }
+
+    def __init__(self, configuration):
+        configuration = configuration.to_dict().copy()
+        configuration.pop('allow_broadcast_joins', None)
+        super(Redshift, self).__init__(configuration)
 
 register(PostgreSQL)
 register(Redshift)

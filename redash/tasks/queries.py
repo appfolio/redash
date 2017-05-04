@@ -11,6 +11,7 @@ from redash.worker import celery
 from redash.query_runner import InterruptException
 from .alerts import check_alerts_for_query
 from .event_streams import event_stream_callback_for
+from redash.query_validation import validate_query
 
 logger = get_task_logger(__name__)
 
@@ -421,6 +422,7 @@ class QueryExecutor(object):
         annotated_query = self._annotate_query(query_runner)
 
         try:
+            validate_query(self.data_source, self.query)
             data, error = query_runner.run_query(annotated_query, self.user)
         except Exception as e:
             error = unicode(e)
