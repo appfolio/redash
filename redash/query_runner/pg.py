@@ -3,6 +3,7 @@ import logging
 import psycopg2
 import select
 import sys
+import string
 
 from redash.query_runner import *
 from redash.utils import JSONEncoder
@@ -47,6 +48,10 @@ def _wait(conn, timeout=None):
 
 class PostgreSQL(BaseSQLQueryRunner):
     noop_query = "SELECT 1"
+
+    DISALLOWED_JOIN_STRATEGY = 'DS_BCAST_INNER'
+    class DisallowedJoinError(Exception):
+        pass
 
     @classmethod
     def configuration_schema(cls):
@@ -123,6 +128,12 @@ class PostgreSQL(BaseSQLQueryRunner):
         cursor = connection.cursor()
 
         try:
+            cursor.execute("EXPLAIN " + query)
+            _wait(connection)
+            query_plan = string.join([str(row) for row in cursor], '')
+            if self.DISALLOWED_JOIN_STRATEGY in query_plan:
+                raise self.DisallowedJoinError
+
             cursor.execute(query)
             _wait(connection)
 
@@ -147,6 +158,9 @@ class PostgreSQL(BaseSQLQueryRunner):
         except (KeyboardInterrupt, InterruptException):
             connection.cancel()
             error = "Query cancelled by user."
+            json_data = None
+        except self.DisallowedJoinError:
+            error = 'This query requires a broadcast join strategy, which has been disallowed for performance reasons. Did you forget to join on vhost?'
             json_data = None
         except Exception as e:
             raise sys.exc_info()[1], None, sys.exc_info()[2]
