@@ -74,30 +74,19 @@ class Release(namedtuple('Release', ('version', 'download_url', 'filename', 'des
         return self.filename.replace('.tar.gz', '')
 
 
-def get_latest_release_from_ci():
-    response = requests.get('https://circleci.com/api/v1.1/project/github/getredash/redash/latest/artifacts?branch=master')
+def get_release():
+    response = requests.get('https://api.github.com/repos/appfolio/redash/releases/latest')
 
     if response.status_code != 200:
         exit("Failed getting releases (status code: %s)." % response.status_code)
 
-    tarball_asset = filter(lambda asset: asset['url'].endswith('.tar.gz'), response.json())[0]
-    filename = urllib.unquote(tarball_asset['pretty_path'].split('/')[-1])
+    data = response.json()
+
+    asset_url = data['assets'][0]['url']
+    filename = data['assets'][0]['name']
     version = filename.replace('redash.', '').replace('.tar.gz', '')
 
-    release = Release(version, tarball_asset['url'], filename, '')
-
-    return release
-
-
-def get_release(channel):
-    if channel == 'ci':
-        return get_latest_release_from_ci()
-
-    response = requests.get('https://version.redash.io/api/releases?channel={}'.format(channel))
-    release = response.json()[0]
-
-    filename = release['download_url'].split('/')[-1]
-    release = Release(release['version'], release['download_url'], filename, release['description'])
+    release = Release(version, asset_url, filename, '')
 
     return release
 
@@ -210,10 +199,10 @@ def verify_newer_version(release):
             exit(1)
 
 
-def deploy_release(channel):
+def deploy_release():
     h1("Starting Redash upgrade:")
 
-    release = get_release(channel)
+    release = get_release()
     green("Found version: {}".format(release.version))
 
     if release.v1_or_newer():
@@ -235,8 +224,4 @@ def deploy_release(channel):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--channel", help="The channel to get release from (default: stable).", default='stable')
-    args = parser.parse_args()
-
-    deploy_release(args.channel)
+    deploy_release()
