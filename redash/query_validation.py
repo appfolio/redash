@@ -27,6 +27,8 @@ class BroadcastJoinValidator:
 
     def validate(self):
         explain_query = string.join(map(self._explain_statement, sqlparse.parse(self.query)))
+        if explain_query == '': return True
+
         data, error = self.data_source.query_runner.run_query(explain_query, None)
         if error is not None: return True # allow bad queries to pass through to the query task error handling
 
