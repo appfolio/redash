@@ -26,7 +26,11 @@ class BroadcastJoinValidator:
         self.query = query
 
     def validate(self):
-        explain_query = string.join(map(self._explain_statement, sqlparse.parse(self.query)))
+        parsed_query_statements = sqlparse.parse(self.query)
+        for statement in parsed_query_statements: # skip validation if a comment contains 'ALLOW_BROADCAST_JOINS'
+            if filter(lambda token: type(token) is sqlparse.sql.Comment and token.match(None, 'ALLOW_BROADCAST_JOINS', regex=True), statement): return True
+
+        explain_query = string.join(map(self._explain_statement, parsed_query_statements))
         if explain_query == '': return True
 
         data, error = self.data_source.query_runner.run_query(explain_query, None)
