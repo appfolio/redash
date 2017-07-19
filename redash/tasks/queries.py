@@ -442,6 +442,7 @@ class QueryExecutor(object):
             if self.scheduled_query:
                 self.scheduled_query.schedule_failures += 1
                 models.db.session.add(self.scheduled_query)
+                models.db.session.commit()
         else:
             if (self.scheduled_query and
                     self.scheduled_query.schedule_failures > 0):
@@ -451,13 +452,13 @@ class QueryExecutor(object):
                 self.data_source.org, self.data_source,
                 self.query_hash, self.query, data,
                 run_time, utils.utcnow())
+            models.db.session.commit()
             self._log_progress('checking_alerts')
             for query_id in updated_query_ids:
                 check_alerts_for_query.delay(query_id)
             self._log_progress('finished')
 
             result = query_result.id
-        models.db.session.commit()
         return result
 
     def _annotate_query(self, query_runner):
